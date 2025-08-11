@@ -44,4 +44,46 @@ class SqliteController {
     await _db.insert('Imgs', {'id': imgs.id, 'url': imgs.url});
     printDatabase();
   }
+
+  Future<List<UserModel>> getUsers() async {
+    List<Map<String, dynamic>> users = await _db.query('User');
+    printDatabase();
+    return users.map((e) => UserModel.fromJson(e)).toList();
+  }
+}
+
+Future<List<ImgsModel>> getImgs(int userId) async {
+  List<Map<String, dynamic>> imgs = await _db.query(
+    'Imgs',
+    where: 'userId = ?',
+    whereArgs: [userId],
+  );
+  printDatabase();
+  return imgs.map((imgs) => ImgsModel.fromJson(imgs)).toList();
+}
+
+Future<void> deleteUser(int userId) async {
+  await _db.delete('User', where: 'id = ?', whereArgs: [userId]);
+  await _db.delete('Imgs', where: 'userId = ?', whereArgs: [userId]);
+  printDatabase();
+}
+
+Future<void> deleteImgs(int imgsId) async {
+  await _db.delete('Imgs', where: 'id = ?', whereArgs: [imgsId]);
+  printDatabase();
+}
+
+void printDatabase() async {
+  List<Map<String, dynamic>> users = await _db.query('User');
+  List<Map<String, dynamic>> imgs = await _db.query('Imgs');
+
+  print('Users:');
+  for (var user in users) {
+    print(UserModel.fromJson(user));
+  }
+
+  print('Imgs:');
+  for (var img in imgs) {
+    print(ImgsModel.fromJson(img));
+  }
 }
