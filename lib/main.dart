@@ -1,117 +1,178 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter/widgets.dart';
+import 'package:http/http.dart' as http;
+import 'package:ladilhos_da_roca/controllers/sqlite_controller.dart'
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SqliteController().initDb(); // Simula inicialização assíncrona
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  // ignore: use_super_parameters
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Personalizador de Imagens',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      title: 'Ladrilhos da Roça',
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const ImageCustomizerScreen(),
     );
   }
 }
 
+;
+
 class ImageCustomizerScreen extends StatefulWidget {
-  const ImageCustomizerScreen({super.key});
+  // ignore: use_super_parameters
+  const ImageCustomizerScreen({Key? key}) : super(key: key);
 
   @override
+  // ignore: library_private_types_in_public_api
   _ImageCustomizerScreenState createState() => _ImageCustomizerScreenState();
 }
 
+// ignore: unused_element
 class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
-  File? _selectedImage;
+  // Remova o File e o ImagePicker
+  // File? _selectedImage;
+  String? _selectedAssetImage;
   Color _selectedColor = Colors.blue;
-  double _width = 300.0;
-  double _height = 300.0;
+  double _widthCm = 10.0;
+  double _heightCm = 10.0;
   final TextEditingController _notesController = TextEditingController();
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  // Lista de imagens dos assets
+  final List<String> _assetImages = [
+    'assets/images/lad001.png',
+    'assets/images/lad002.png',
+    'assets/images/lad003.png',
+    'assets/images/lad004.png',
+    'assets/images/lad005.png',
+    'assets/images/lad006.png',
+    'assets/images/lad007.png',
+    'assets/images/lad008.png',
+    'assets/images/lad009.png',
+    'assets/images/lad010.png',
+    // Adicione mais caminhos conforme necessário
+  ];
 
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
-    }
-  }
-
-  void _submitOrder() {
-    if (_selectedImage == null) {
+  // ignore: unused_element
+  void _submitOrder() async {
+    if (_selectedAssetImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, selecione uma imagem')),
       );
       return;
     }
 
-    // Implementar a lógica para enviar o pedido
-    // Upload para um servidor ou salvar localmente
+    // Exemplo de dados do pedido
+    final orderData = {
+      'image': _selectedAssetImage,
+      // ignore: deprecated_member_use
+      'color': _selectedColor.value,
+      'width_cm': _widthCm,
+      'height_cm': _heightCm,
+      'notes': _notesController.text,
+    };
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pedido Enviado'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Dimensões: ${_width.toInt()}x${_height.toInt()}'),
-            Text('Cor: ${_selectedColor.toString()}'),
-            if (_notesController.text.isNotEmpty)
-              Text('Observações: ${_notesController.text}'),
+    // Envio para uma API fictícia (substitua pela sua URL)
+    try {
+      final response = await http.post(
+        Uri.parse('https://sua-api.com/pedidos'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(orderData),
+      );
+
+      if (response.statusCode == 200) {
+        showDialog(
+          // ignore: use_build_context_synchronously
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Pedido Enviado'),
+            content: const Text('Seu pedido foi enviado com sucesso!'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        throw Exception('Erro ao enviar pedido');
+      }
+    } catch (e) {
+      showDialog(
+        // ignore: use_build_context_synchronously
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Erro'),
+          content: Text('Falha ao enviar pedido: $e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Personalizar Imagem')),
+      appBar: AppBar(title: const Text('Escolha seu Ladrilho')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Seleção de imagem
+            // Seleção de imagem dos assets
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
                     const Text(
-                      'Selecione uma imagem',
+                      'Selecione um Ladrilho',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _selectedImage == null
+                    _selectedAssetImage == null
                         ? const Icon(Icons.image, size: 100, color: Colors.grey)
-                        : Image.file(_selectedImage!, height: 200),
+                        : Image.asset(_selectedAssetImage!, height: 200),
                     const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: _pickImage,
-                      child: const Text('Escolher Imagem'),
+                    Wrap(
+                      spacing: 8,
+                      children: _assetImages.map((img) {
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedAssetImage = img;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: _selectedAssetImage == img
+                                    ? Colors.blue
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: Image.asset(img, width: 60, height: 60),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
@@ -120,37 +181,9 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
 
             const SizedBox(height: 20),
 
-            // Cor
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Selecione uma cor',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ColorPicker(
-                      selectedColor: _selectedColor,
-                      onColorChanged: (color) {
-                        setState(() {
-                          _selectedColor = color;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // Cor (igual ao seu código atual)
 
-            const SizedBox(height: 20),
-
-            // Dimensões
+            // Dimensões em centímetros
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -165,29 +198,29 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text('Largura: ${_width.toInt()}px'),
+                    Text('Largura: ${_widthCm.toStringAsFixed(1)} cm'),
                     Slider(
-                      value: _width,
-                      min: 100,
-                      max: 800,
-                      divisions: 7,
-                      label: _width.toInt().toString(),
+                      value: _widthCm,
+                      min: 5,
+                      max: 80,
+                      divisions: 75,
+                      label: _widthCm.toStringAsFixed(1),
                       onChanged: (value) {
                         setState(() {
-                          _width = value;
+                          _widthCm = value;
                         });
                       },
                     ),
-                    Text('Altura: ${_height.toInt()}px'),
+                    Text('Altura: ${_heightCm.toStringAsFixed(1)} cm'),
                     Slider(
-                      value: _height,
-                      min: 100,
-                      max: 800,
-                      divisions: 7,
-                      label: _height.toInt().toString(),
+                      value: _heightCm,
+                      min: 5,
+                      max: 80,
+                      divisions: 75,
+                      label: _heightCm.toStringAsFixed(1),
                       onChanged: (value) {
                         setState(() {
-                          _height = value;
+                          _heightCm = value;
                         });
                       },
                     ),
@@ -202,48 +235,32 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Observações',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _notesController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText:
-                            'Digite alguma observação sobre seu pedido...',
-                      ),
-                    ),
-                  ],
+                child: TextField(
+                  controller: _notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Observações (opcional)',
+                  ),
+                  maxLines: 3,
                 ),
               ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
 
-            // Enviar
+            // Botão de envio
             ElevatedButton(
               onPressed: _submitOrder,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: const Text(
-                'ENVIAR PEDIDO',
-                style: TextStyle(fontSize: 18),
-              ),
+              child: const Text('Enviar Pedido'),
             ),
+
+            // código (observações, botão enviar, etc)...
           ],
         ),
       ),
     );
+
+    // Observações
+    // ignore: non_constant_identifier_names
   }
 
   @override
@@ -253,38 +270,40 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
   }
 }
 
+// Move this outside the class as a top-level constant
+final List<Color> availableColors = [
+  Colors.red,
+  Colors.pink,
+  Colors.purple,
+  Colors.deepPurple,
+  Colors.indigo,
+  Colors.blue,
+  Colors.lightBlue,
+  Colors.cyan,
+  Colors.teal,
+  Colors.green,
+  Colors.lightGreen,
+  Colors.lime,
+  Colors.yellow,
+  Colors.amber,
+  Colors.orange,
+  Colors.deepOrange,
+  Colors.brown,
+  Colors.grey,
+  Colors.blueGrey,
+  Colors.black,
+];
+
 class ColorPicker extends StatelessWidget {
   final Color selectedColor;
   final ValueChanged<Color> onColorChanged;
 
+  // ignore: use_super_parameters
   const ColorPicker({
-    super.key,
+    Key? key,
     required this.selectedColor,
     required this.onColorChanged,
-  });
-
-  final List<Color> availableColors = const [
-    Colors.red,
-    Colors.pink,
-    Colors.purple,
-    Colors.deepPurple,
-    Colors.indigo,
-    Colors.blue,
-    Colors.lightBlue,
-    Colors.cyan,
-    Colors.teal,
-    Colors.green,
-    Colors.lightGreen,
-    Colors.lime,
-    Colors.yellow,
-    Colors.amber,
-    Colors.orange,
-    Colors.deepOrange,
-    Colors.brown,
-    Colors.grey,
-    Colors.blueGrey,
-    Colors.black,
-  ];
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
