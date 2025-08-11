@@ -73,6 +73,22 @@ Future<void> deleteImgs(int imgsId) async {
   printDatabase();
 }
 
+Future<void> updateUser(UserModel user) async {
+  await _db .update(
+    'User','name': user.name, where: 'id = ?', whereArgs: [user.id]);
+    printDatabase()
+}
+
+  Future<void> updateImgs(ImgsModel imgs) async {
+    await _db.update(
+      'Imgs',
+      {'name': imgs.name, 'url': imgs.url, 'description': imgs.description},
+      where: 'id = ?',
+      whereArgs: [imgs.id],
+    );
+    printDatabase();
+  }
+
 void printDatabase() async {
   List<Map<String, dynamic>> users = await _db.query('User');
   List<Map<String, dynamic>> imgs = await _db.query('Imgs');
