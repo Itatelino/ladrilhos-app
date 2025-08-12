@@ -1,9 +1,16 @@
 import 'dart:convert';
+// ignore: unused_import
 import 'dart:io';
 import 'package:flutter/material.dart';
+// ignore: unnecessary_import
 import 'package:flutter/widgets.dart';
+// ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
-import 'package:ladilhos_da_roca/controllers/sqlite_controller.dart'
+import 'package:ladrilho_app/controlles/sqlite_controller.dart';
+// ignore: unused_import
+import 'package:sqflite/sqflite.dart';
+// ignore: depend_on_referenced_packages
+import 'package:path/path.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,8 +31,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-;
 
 class ImageCustomizerScreen extends StatefulWidget {
   // ignore: use_super_parameters
@@ -64,7 +69,8 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
   // ignore: unused_element
   void _submitOrder() async {
     if (_selectedAssetImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context as BuildContext).showSnackBar(
+        // Antes era context
         const SnackBar(content: Text('Por favor, selecione uma imagem')),
       );
       return;
@@ -91,7 +97,7 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
       if (response.statusCode == 200) {
         showDialog(
           // ignore: use_build_context_synchronously
-          context: context,
+          context: (context as BuildContext), // Antes era context
           builder: (context) => AlertDialog(
             title: const Text('Pedido Enviado'),
             content: const Text('Seu pedido foi enviado com sucesso!'),
@@ -109,7 +115,7 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
     } catch (e) {
       showDialog(
         // ignore: use_build_context_synchronously
-        context: context,
+        context: (context as BuildContext), // Antes era context
         builder: (context) => AlertDialog(
           title: const Text('Erro'),
           content: Text('Falha ao enviar pedido: $e'),

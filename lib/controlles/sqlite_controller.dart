@@ -3,7 +3,7 @@ import 'package:ladrilho_app/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 class SqliteController {
-  late Database _db;
+  late final Database _db;
 
   Future<void> initDb() async {
     // Simula uma inicialização assíncrona, como abrir um banco de dados
@@ -50,34 +50,37 @@ class SqliteController {
     printDatabase();
     return users.map((e) => UserModel.fromJson(e)).toList();
   }
-}
 
-Future<List<ImgsModel>> getImgs(int userId) async {
-  List<Map<String, dynamic>> imgs = await _db.query(
-    'Imgs',
-    where: 'userId = ?',
-    whereArgs: [userId],
-  );
-  printDatabase();
-  return imgs.map((imgs) => ImgsModel.fromJson(imgs)).toList();
-}
+  Future<List<ImgsModel>> getUserImgs(int userId) async {
+    List<Map<String, dynamic>> imgs = await _db.query(
+      'Imgs',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+    printDatabase();
+    return imgs.map((imgs) => ImgsModel.fromJson(imgs)).toList();
+  }
 
-Future<void> deleteUser(int userId) async {
-  await _db.delete('User', where: 'id = ?', whereArgs: [userId]);
-  await _db.delete('Imgs', where: 'userId = ?', whereArgs: [userId]);
-  printDatabase();
-}
+  Future<void> deleteUser(int userId) async {
+    await _db.delete('User', where: 'id = ?', whereArgs: [userId]);
+    await _db.delete('Imgs', where: 'userId = ?', whereArgs: [userId]);
+    printDatabase();
+  }
 
-Future<void> deleteImgs(int imgsId) async {
-  await _db.delete('Imgs', where: 'id = ?', whereArgs: [imgsId]);
-  printDatabase();
-}
+  Future<void> deleteImgs(int imgsId) async {
+    await _db.delete('Imgs', where: 'id = ?', whereArgs: [imgsId]);
+    printDatabase();
+  }
 
-Future<void> updateUser(UserModel user) async {
-  await _db .update(
-    'User','name': user.name, where: 'id = ?', whereArgs: [user.id]);
-    printDatabase()
-}
+  Future<void> updateUser(UserModel user) async {
+    await _db.update(
+      'User',
+      {'name': user.name, 'email': user.email, 'password': user.password},
+      where: 'id = ?',
+      whereArgs: [user.id],
+    );
+    printDatabase();
+  }
 
   Future<void> updateImgs(ImgsModel imgs) async {
     await _db.update(
@@ -89,17 +92,18 @@ Future<void> updateUser(UserModel user) async {
     printDatabase();
   }
 
-void printDatabase() async {
-  List<Map<String, dynamic>> users = await _db.query('User');
-  List<Map<String, dynamic>> imgs = await _db.query('Imgs');
+  Future<void> printDatabase() async {
+    List<Map<String, dynamic>> users = await _db.query('User');
+    List<Map<String, dynamic>> imgs = await _db.query('Imgs');
 
-  print('Users:');
-  for (var user in users) {
-    print(UserModel.fromJson(user));
-  }
+    print('Users:');
+    for (var user in users) {
+      print(UserModel.fromJson(user));
+    }
 
-  print('Imgs:');
-  for (var img in imgs) {
-    print(ImgsModel.fromJson(img));
+    print('Imgs:');
+    for (var img in imgs) {
+      print(ImgsModel.fromJson(img));
+    }
   }
 }
