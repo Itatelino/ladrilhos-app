@@ -1,109 +1,71 @@
+// ignore: unused_import
 import 'package:ladrilho_app/models/imgs_models.dart';
+// ignore: unused_import
 import 'package:ladrilho_app/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
+// ignore: depend_on_referenced_packages
+import 'package:path/path.dart';
 
 class SqliteController {
-  late final Database _db;
+  static Database? _db;
+  static final SqliteController _instance = SqliteController._internal();
 
-  Future<void> initDb() async {
-    // Simula uma inicialização assíncrona, como abrir um banco de dados
+  factory SqliteController() => _instance;
 
-    var databasesPath = await getDatabasesPath();
-    String path = '$databasesPath/demo.db';
+  SqliteController._internal();
 
-    _db = await openDatabase(
+  Future<Database> getDatabase() async {
+    if (_db != null) return _db!;
+    _db = await _initDb();
+    return _db!;
+  }
+
+  Future<Database> _initDb() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'ladrilho_app.db');
+    return await openDatabase(
       path,
       version: 1,
-      onCreate: (Database db, int version) async {
+      onCreate: (db, version) async {
         await db.execute('''
-        CREATE TABLE User (
-          id INTEGER PRIMARY KEY,
-          name TEXT,
-          email TEXT,
-          password TEXT
-        )
-      ''');
-        await db.execute('''
-        CREATE TABLE Imgs (
-          id TEXT PRIMARY KEY,
-          name TEXT,
-          url TEXT,
-          description TEXT
-        )
-      ''');
+          CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            image TEXT,
+            color INTEGER,
+            width_cm REAL,
+            height_cm REAL,
+            notes TEXT,
+            created_at TEXT
+          )
+        ''');
       },
     );
   }
 
-  Future<void> insertUser(UserModel user) async {
-    await _db.insert('User', {'name': user.name});
-    printDatabase();
+  Future<void> initDb() async {
+    await getDatabase();
   }
 
-  Future<void> insertImgs(ImgsModel imgs) async {
-    await _db.insert('Imgs', {'id': imgs.id, 'url': imgs.url});
-    printDatabase();
+  Future<void> insertOrder(Map<String, dynamic> order) async {
+    final db = await getDatabase();
+    await db.insert('orders', order);
   }
 
-  Future<List<UserModel>> getUsers() async {
-    List<Map<String, dynamic>> users = await _db.query('User');
-    printDatabase();
-    return users.map((e) => UserModel.fromJson(e)).toList();
+  // Buscar todos os pedidos
+  Future<List<Map<String, dynamic>>> getAllOrders() async {
+    final db = await getDatabase();
+    return await db.query('orders', orderBy: 'created_at DESC');
   }
 
-  Future<List<ImgsModel>> getUserImgs(int userId) async {
-    List<Map<String, dynamic>> imgs = await _db.query(
-      'Imgs',
-      where: 'userId = ?',
-      whereArgs: [userId],
-    );
-    printDatabase();
-    return imgs.map((imgs) => ImgsModel.fromJson(imgs)).toList();
+  // Atualizar um pedido pelo id
+  Future<int> updateOrder(int id, Map<String, dynamic> order) async {
+    final db = await getDatabase();
+    return await db.update('orders', order, where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<void> deleteUser(int userId) async {
-    await _db.delete('User', where: 'id = ?', whereArgs: [userId]);
-    await _db.delete('Imgs', where: 'userId = ?', whereArgs: [userId]);
-    printDatabase();
-  }
-
-  Future<void> deleteImgs(int imgsId) async {
-    await _db.delete('Imgs', where: 'id = ?', whereArgs: [imgsId]);
-    printDatabase();
-  }
-
-  Future<void> updateUser(UserModel user) async {
-    await _db.update(
-      'User',
-      {'name': user.name, 'email': user.email, 'password': user.password},
-      where: 'id = ?',
-      whereArgs: [user.id],
-    );
-    printDatabase();
-  }
-
-  Future<void> updateImgs(ImgsModel imgs) async {
-    await _db.update(
-      'Imgs',
-      {'name': imgs.name, 'url': imgs.url, 'description': imgs.description},
-      where: 'id = ?',
-      whereArgs: [imgs.id],
-    );
-    printDatabase();
-  }
-
-  Future<void> printDatabase() async {
-    List<Map<String, dynamic>> users = await _db.query('User');
-    List<Map<String, dynamic>> imgs = await _db.query('Imgs');
-
-    print('Users:');
-    for (var user in users) {
-      print(UserModel.fromJson(user));
-    }
-
-    print('Imgs:');
-    for (var img in imgs) {
-      print(ImgsModel.fromJson(img));
-    }
+  // Deletar um pedido pelo id
+  Future<int> deleteOrder(int id) async {
+    final db = await getDatabase();
+    return await db.delete('orders', where: 'id = ?', whereArgs: [id]);
   }
 }
