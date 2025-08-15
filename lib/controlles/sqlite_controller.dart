@@ -69,3 +69,5 @@ class SqliteController {
     return await db.delete('orders', where: 'id = ?', whereArgs: [id]);
   }
 }
+
+// Exemplo simples em Node.js

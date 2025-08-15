@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:ladrilho_app/controlles/sqlite_controller.dart';
+// ignore: unused_import
 import 'package:url_launcher/url_launcher.dart';
+// ignore: unused_import
+import 'dart:ui' as ui;
+// ignore: depend_on_referenced_packages
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,47 +69,34 @@ class _ImageCustomizerScreenState extends State<ImageCustomizerScreen> {
       'width_cm': _widthCm,
       'height_cm': _heightCm,
       'notes': _notesController.text,
-      'created_at': DateTime.now().toIso8601String(),
     };
 
-    await SqliteController().insertOrder(orderData);
-
-    showDialog(
-      // ignore: use_build_context_synchronously
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pedido Salvo'),
-        content: const Text('Seu pedido foi salvo localmente!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+    final response = await http.post(
+      Uri.parse('https://SEU_BACKEND_URL/api/pedidos'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(orderData),
     );
-  }
 
-  Future<void> _sendOrderViaWhatsApp() async {
-    final message =
-        '''
-Pedido de Ladrilho:
-Imagem: $_selectedAssetImage
-Largura: ${_widthCm.toStringAsFixed(1)} cm
-Altura: ${_heightCm.toStringAsFixed(1)} cm
-Observações: ${_notesController.text}
-''';
-
-    final url = Uri.parse(
-      'https://wa.me/message/TH6UCYQCCKX7D1${Uri.encodeComponent(message)}',
-    );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível abrir o WhatsApp')),
+    if (response.statusCode == 200) {
+      showDialog(
+        // ignore: use_build_context_synchronously
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Pedido Enviado'),
+          content: const Text('Seu pedido foi enviado com sucesso!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
+    } else {
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao enviar pedido')));
     }
   }
 
@@ -116,7 +109,7 @@ Observações: ${_notesController.text}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Escolha seu Ladrilho')),
+      appBar: AppBar(title: const Text('Ladrilhos da Roça')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -242,12 +235,12 @@ Observações: ${_notesController.text}
 
             const SizedBox(height: 10),
 
-            ElevatedButton.icon(
-              onPressed: _sendOrderViaWhatsApp,
-              /* icon: const Icon(Icons.whatsapp, color: Colors.white),*/
-              label: const Text('Enviar via WhatsApp'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            ),
+            /*ElevatedButton.icon(*/
+            /*onPressed: _sendOrderViaWhatsApp,*/
+            /* icon: const Icon(Icons.whatsapp, color: Colors.white),*/
+            /*label: const Text('Enviar via WhatsApp'),*/
+            /*style: ElevatedButton.styleFrom(backgroundColor: Colors.green),*
+            ),*/
           ],
         ),
       ),
