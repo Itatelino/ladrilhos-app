@@ -1,73 +1,114 @@
-// ignore: unused_import
-import 'package:ladrilho_app/models/imgs_models.dart';
-// ignore: unused_import
+import 'package:ladrilho_app/models/imgs_model.dart';
 import 'package:ladrilho_app/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart';
 
 class SqliteController {
-  static Database? _db;
-  static final SqliteController _instance = SqliteController._internal();
+  late final Database _db;
 
-  factory SqliteController() => _instance;
+  Future<void> initDb() async {
+    // Initialize the SQLite database
+    var databasePath = await getDatabasesPath();
+    String path = '$databasePath/my_database.db';
 
-  SqliteController._internal();
-
-  Future<Database> getDatabase() async {
-    if (_db != null) return _db!;
-    _db = await _initDb();
-    return _db!;
-  }
-
-  Future<Database> _initDb() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'ladrilho_app.db');
-    return await openDatabase(
+    _db = await openDatabase(
       path,
       version: 1,
-      onCreate: (db, version) async {
+      onCreate: (Database db, int version) async {
         await db.execute('''
-          CREATE TABLE IF NOT EXISTS orders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            image TEXT,
-            color INTEGER,
-            width_cm REAL,
-            height_cm REAL,
-            notes TEXT,
-            created_at TEXT
-          )
-        ''');
+        CREATE TABLE imgs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT,
+          url TEXT,
+          description TEXT
+        )
+      ''');
+        await db.execute('''
+        CREATE TABLE users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT
+        )
+      ''');
+        // Create your tables here
       },
     );
   }
 
-  Future<void> initDb() async {
-    await getDatabase();
+  Future<void> insertUser(UserModel user) async {
+    await _db.insert("users", {'name': user.name});
+    printDatabase();
   }
 
-  Future<void> insertOrder(Map<String, dynamic> order) async {
-    final db = await getDatabase();
-    await db.insert('orders', order);
+  Future<void> insertImage(ImgsModel image) async {
+    await _db.insert('Imgs', {'text': image.text, 'userId': image.userId});
+    printDatabase();
   }
 
-  // Buscar todos os pedidos
-  Future<List<Map<String, dynamic>>> getAllOrders() async {
-    final db = await getDatabase();
-    return await db.query('orders', orderBy: 'created_at DESC');
-  }
-
-  // Atualizar um pedido pelo id
-  Future<int> updateOrder(int id, Map<String, dynamic> order) async {
-    final db = await getDatabase();
-    return await db.update('orders', order, where: 'id = ?', whereArgs: [id]);
-  }
-
-  // Deletar um pedido pelo id
-  Future<int> deleteOrder(int id) async {
-    final db = await getDatabase();
-    return await db.delete('orders', where: 'id = ?', whereArgs: [id]);
+  Future<List<UserModel>> getUsers() async {
+    final List<Map<String, dynamic>> users = await _db.query('User');
+    return users.map((e) => UserModel.fromJson(e)).toList();
   }
 }
 
-// Exemplo simples em Node.js
+Future<List<ImgsModel>> getUserImages(int userId) async {
+  // SELECT * FROM Imgs WHERE userId = ?
+  List<Map<String, dynamic>> images = await _db.query(
+    'Imgs',
+    where: 'userId = ?',
+    whereArgs: [userId],
+  );
+  printDatabase();
+  return images.map((image) => ImgsModel.fromJson(image)).toList();
+}
+
+Future<void> deleteUser(int id) async {
+  await _db.delete('User', where: 'id = ?', whereArgs: [id]);
+  await _db.delete('Imgs', where: 'userId = ?', whereArgs: [id]);
+  printDatabase();
+}
+
+Future<void> deleteImage(int id) async {
+  await _db.delete('Imgs', where: 'id = ?', whereArgs: [id]);
+  printDatabase();
+}
+
+Future<void> updateUser(UserModel user) async {
+  await _db.update(
+    'User',
+    {'name': user.name},
+    where: 'id = ?',
+    whereArgs: [user.id],
+  );
+  printDatabase();
+}
+
+Future<void> updateImage(ImgsModel image) async {
+  await _db.update(
+    'Imgs',
+    {'text': image.text, 'userId': image.userId},
+    where: 'id = ?',
+    whereArgs: [image.id],
+  );
+  printDatabase();
+}
+
+Future<void> printDatabase() async {
+  final List<Map<String, dynamic>> users = await _db.query('User');
+
+  final List<Map<String, dynamic>> images = await _db.query('Imgs');
+
+  // Print users and images to console
+  print('Users');
+  for (var user in users) {
+    print('ID: ${user['id']}, Name: ${user['name']}');
+  }
+
+  print('Images');
+  for (var image in images) {
+    print(
+      'ID: ${image['id']}, Text: ${image['text']}, User ID: ${image['userId']}',
+    );
+  }
+}
